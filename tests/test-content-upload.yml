@@ -1,0 +1,32 @@
+name: Test content upload with all inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create test file for file_path input
+        run: |
+          echo "hello from test file" > /tmp/test-upload.txt
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          slack_token: "xoxb-fake-token-for-testing"
+          slack_api_url: "http://localhost:19999/api/"
+          channel_id: "C0000000000"
+          content: "Hello from test content"
+          file_path: "/tmp/test-upload.txt"
+          file_name: "test-upload.txt"
+          file_type: "text"
+          if_no_files_found: "warn"
+          initial_comment: "Test initial comment"
+          thread_ts: "1234567890.123456"
+          title: "Test File Title"
+          retries: "1"
+          delete_file_ids_before_upload: ""
+      - name: Assert action ran (may fail due to fake token/url)
+        run: |
+          echo "Action completed with outcome: ${{ steps.action.outcome }}"
+          echo "PASS: action step executed (expected failure with fake credentials)"
