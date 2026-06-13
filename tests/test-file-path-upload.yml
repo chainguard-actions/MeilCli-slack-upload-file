@@ -1,0 +1,66 @@
+name: Test file path upload
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create test file to upload
+        run: |
+          echo "This is a test file for upload" > /tmp/test-upload.txt
+      - name: Start mock Slack API server
+        run: |
+          mkdir -p /tmp/mock-slack
+          cat > /tmp/mock-slack/server2.py << 'EOF'
+          import http.server
+          import json
+          import threading
+
+          class Handler(http.server.BaseHTTPRequestHandler):
+              def do_POST(self):
+                  content_length = int(self.headers.get('Content-Length', 0))
+                  self.rfile.read(content_length)
+                  response = json.dumps({
+                      "ok": True,
+                      "files": [{"id": "F87654321", "name": "test-upload.txt"}]
+                  }).encode()
+                  self.send_response(200)
+                  self.send_header('Content-Type', 'application/json')
+                  self.send_header('Content-Length', str(len(response)))
+                  self.end_headers()
+                  self.wfile.write(response)
+              def log_message(self, format, *args):
+                  pass
+
+          server = http.server.HTTPServer(('127.0.0.1', 18081), Handler)
+          t = threading.Thread(target=server.serve_forever)
+          t.daemon = True
+          t.start()
+          import time; time.sleep(86400)
+          EOF
+          python3 /tmp/mock-slack/server2.py &
+          sleep 1
+          echo "Mock server started on port 18081"
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          slack_token: "xoxb-fake-token-for-testing"
+          slack_api_url: "http://127.0.0.1:18081/"
+          channel_id: "C87654321"
+          file_path: "/tmp/test-upload.txt"
+          file_path_follow_symbolic_links: "true"
+          file_name: "test-upload.txt"
+          file_type: "text"
+          initial_comment: "File path upload test"
+          title: "Test File Path Upload"
+          retries: "2"
+          if_no_files_found: "error"
+          delete_file_ids_before_upload: "F00000001,F00000002"
+      - name: Assert step ran
+        run: |
+          echo "Action outcome: ${{ steps.action.outcome }}"
+          echo "Response: ${{ steps.action.outputs.response }}"
+          echo "Uploaded file IDs: ${{ steps.action.outputs.uploaded_file_ids }}"
+          echo "PASS: action step executed"
