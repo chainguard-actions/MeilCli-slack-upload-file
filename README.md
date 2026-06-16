@@ -1,17 +1,137 @@
-# MeilCli/slack-upload-file
+# slack-upload-file
+[![CI-Master](https://github.com/MeilCli/slack-upload-file/actions/workflows/ci-master.yml/badge.svg)](https://github.com/MeilCli/slack-upload-file/actions/workflows/ci-master.yml)  
+upload file to slack action
 
-upload file to slack
+## Example
+### Post by files
+```yaml
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: MeilCli/slack-upload-file@v5
+        with:
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          file_path: 'docs/*.txt'
+          initial_comment: 'post by slack-upload-file'
+          # thread_ts: 'option'
+```
 
-Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/MeilCli/slack-upload-file](https://github.com/MeilCli/slack-upload-file).
+### Post by workflow yaml
+```yaml
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: MeilCli/slack-upload-file@v5
+        with:
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          content: 'file content'
+          file_type: 'text'
+          file_name: 'text.txt'
+          title: 'title of file'
+          initial_comment: 'post by slack-upload-file'
+          # thread_ts: 'option'
+```
 
-## Versions
+## Information
+- This action execute simply [files.upload](https://api.slack.com/methods/files.upload), and can upload multiple files by [glob pattern](https://github.com/actions/toolkit/tree/main/packages/glob#patterns)
+- How get slack token? see [Basic app setup](https://api.slack.com/authentication/basics)
+- How choose Oauth Scope? This action require `files:read` and `files:write`. In simply case, you do choose `files:read` and `files:write` Bot Token Scope.
+- Why use `files:read` Oauth scope? Because this action use files.uploadv2, and its api requires `files:read`.
+  - ref: https://github.com/slackapi/node-slack-sdk/pull/1544
+- You can also pin to a [specific release](https://github.com/MeilCli/slack-upload-file/releases) version in the format `@v4.x.x`
 
-| Version | Tag | Upstream commit |
-|---------|-----|-----------------|
-| v4.0.52 | [`v4.0.52`](https://github.com/chainguard-actions/MeilCli-slack-upload-file/tree/v4.0.52) | [`092571b`](https://github.com/MeilCli/slack-upload-file/commit/092571b6762c3059626689af2635a179c0b90a71) |
-| v5.0.0 | [`v5.0.0`](https://github.com/chainguard-actions/MeilCli-slack-upload-file/tree/v5.0.0) | [`7e7e76f`](https://github.com/MeilCli/slack-upload-file/commit/7e7e76f1524116683fbc9729716bb3a383dc4406) |
-| v5.0.1 | [`v5.0.1`](https://github.com/chainguard-actions/MeilCli-slack-upload-file/tree/v5.0.1) | [`5b1b543`](https://github.com/MeilCli/slack-upload-file/commit/5b1b5438433bb20c1a6081738f3a0b431db72c42) |
-| v5.0.2 | [`v5.0.2`](https://github.com/chainguard-actions/MeilCli-slack-upload-file/tree/v5.0.2) | [`3b796b1`](https://github.com/MeilCli/slack-upload-file/commit/3b796b16dc3adce2a97e59caf677ed5c483dced2) |
+## Input
+- `slack_token`
+  - required
+  - Slack token, must has files:write permission
+- `slack_api_url`
+  - Custom slack api url
+- `channel_id`
+  - Slack channel id
+- `content`
+  - File contents via a POST variable. If omitting this parameter, you must provide a `file`.
+- `file_path`
+  - File contents via multipart/form-data. If omitting this parameter, you must submit `content`.
+  - You can use [glob pattern](https://github.com/actions/toolkit/tree/main/packages/glob#patterns)
+- `file_path_follow_symbolic_links`
+  - Indicates whether to follow symbolic links
+  - This parameter only use glob pattern
+  - default: true
+- `if_no_files_found`
+  - file not founding options: warn, error or ignore. alike actions/upload-artifact
+  - `warn`: output warning, but do not fail
+  - `ignore`: no output and do not fail
+  - `error`: output warning and do fail
+  - default: error
+- `file_name`
+  - Filename of file.
+  - This parameter can only use providing `content`
+- `file_type`
+  - A file type identifier.
+  - ref: [https://api.slack.com/types/file#file_types](https://api.slack.com/types/file#file_types)
+- `initial_comment`
+  - The message text introducing the file in specified channels.
+  - links might not work because files.uploadv2 limitation. ref: [#695](https://github.com/MeilCli/slack-upload-file/issues/695)
+- `thread_ts`
+  - Provide another message's ts value to upload this file as a reply. Never use a reply's ts value; use its parent instead.
+- `title`
+  - Title of file.
+- `retries`
+  - max API retry count. default retries is 3.
+- `delete_file_ids_before_upload`
+  - file deletion before upload. comma separeted file ids. this argument is purpose for previous uploaded file replacement.
+
+## Output
+- `response`
+  - the api response
+  - json structure: [Summary of response](./docs/response.md)
+- `uploaded_file_ids`
+  - comma separeted uploaded file ids
+
+### Example
+```yaml
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo ${{ github.event.inputs.message }} > message.txt'
+      - uses: MeilCli/slack-upload-file@v5
+        id: message
+        with:
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          file_path: 'message.txt'
+          initial_comment: 'post by slack-upload-file'
+      - run: 'echo ${{ fromJson(steps.message.outputs.response).files[0].file.permalink }}'
+```
+
+## Migration from v2 to v3/v4/v5
+- Must: add `files:read` permission scope to Slack App.
+- Need: change to `channel_id` from `channels`. `channels` is removed because it is deprecated. 
+- Some: change some input and output.
+  - input:
+    - new: `delete_file_id_before_upload`, old: `delete_file_id_before_upload`
+    - `title` is changed, it will not send when upload by files.
+  - output:
+    - new: `uploaded_file_ids`, old: `uploaded_file_id`
+    - `response` is changed.
+
+## Contributes
+[<img src="https://gist.github.com/MeilCli/9851a2980ae568e93042315ec2b43588/raw/859ead0ea54e1a8e943b575937bdc0e3c54bf0ac/metrics_contributors.svg">](https://github.com/MeilCli/slack-upload-file/graphs/contributors)
+
+### Could you want to contribute?
+see [Contributing.md](./.github/CONTRIBUTING.md)
+
+## License
+[<img src="https://gist.github.com/MeilCli/9851a2980ae568e93042315ec2b43588/raw/859ead0ea54e1a8e943b575937bdc0e3c54bf0ac/metrics_licenses.svg">](LICENSE.txt)
+
+### Using
+- [actions/toolkit](https://github.com/actions/toolkit), published by [MIT License](https://github.com/actions/toolkit/blob/master/LICENSE.md)
+- [slackapi/node-slack-sdk](https://github.com/slackapi/node-slack-sdk), published by [MIT License](https://github.com/slackapi/node-slack-sdk/blob/main/LICENSE)
 
 ## Privacy
 
