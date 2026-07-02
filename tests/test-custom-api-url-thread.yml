@@ -1,4 +1,4 @@
-name: Test delete file IDs before upload
+name: Test custom API URL and thread reply
 on:
   workflow_dispatch:
 jobs:
@@ -11,21 +11,21 @@ jobs:
         continue-on-error: true
         with:
           slack_token: xoxb-dummy-token-for-testing
+          slack_api_url: https://slack.invalid/api/
           channel_id: C0000000000
-          content: "Replacement file content"
-          file_name: replacement.txt
-          title: "Replacement File"
-          delete_file_ids_before_upload: "F0000000001,F0000000002"
+          content: "Thread reply test content"
+          file_name: thread-test.txt
+          title: "Thread Reply Test"
+          thread_ts: "1234567890.123456"
           retries: "1"
-      - name: Assert action ran with delete_file_ids_before_upload input
+      - name: Assert action ran with custom API URL and thread_ts inputs
         env:
           OUTCOME: ${{ steps.action.outcome }}
         run: |
           echo "outcome: $OUTCOME"
-          # With a dummy token the action will fail at the API call,
-          # but it should not be skipped — the input must be accepted
+          # With an invalid slack_api_url, the action should fail (not be skipped)
           if [ "$OUTCOME" = "skipped" ]; then
             echo "FAIL: action was skipped unexpectedly"
             exit 1
           fi
-          echo "PASS: action ran with outcome=$OUTCOME (delete_file_ids_before_upload input accepted)"
+          echo "PASS: action ran with outcome=$OUTCOME (slack_api_url and thread_ts inputs accepted)"
