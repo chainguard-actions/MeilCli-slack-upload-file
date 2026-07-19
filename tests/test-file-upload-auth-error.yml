@@ -1,4 +1,4 @@
-name: Test content upload with delete_file_ids_before_upload
+name: Test file upload - auth error with fake token
 on:
   workflow_dispatch:
 jobs:
@@ -6,15 +6,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create test file
+        run: |
+          echo "This is a test file content" > /tmp/test-upload.txt
       - id: action
         uses: .
         continue-on-error: true
         with:
           slack_token: xoxb-fake-token-for-testing
-          content: "Hello from delete-before-upload test"
-          file_name: test.txt
-          title: Test Delete Before Upload
-          delete_file_ids_before_upload: "F0000000001,F0000000002"
+          file_path: /tmp/test-upload.txt
+          file_name: test-upload.txt
+          title: Test File Upload
           retries: 0
       - name: Assert action failed due to auth error
         env:
@@ -22,9 +24,9 @@ jobs:
         run: |
           echo "outcome: '$OUTCOME'"
           # With a fake token, the Slack API should reject the request
-          # The action should fail (not succeed)
+          # The action should fail (not succeed) - it found the file but API auth failed
           if [ "$OUTCOME" != "failure" ]; then
             echo "FAIL: expected action to fail with fake token but outcome was: $OUTCOME"
             exit 1
           fi
-          echo "PASS: action correctly failed when using an invalid Slack token with delete_file_ids_before_upload"
+          echo "PASS: action correctly failed when using an invalid Slack token (file was found)"

@@ -1,4 +1,4 @@
-name: Test content upload with delete_file_ids_before_upload
+name: Test content upload with thread_ts
 on:
   workflow_dispatch:
 jobs:
@@ -11,10 +11,10 @@ jobs:
         continue-on-error: true
         with:
           slack_token: xoxb-fake-token-for-testing
-          content: "Hello from delete-before-upload test"
+          content: "Hello from thread reply test"
           file_name: test.txt
-          title: Test Delete Before Upload
-          delete_file_ids_before_upload: "F0000000001,F0000000002"
+          title: Test Thread Reply Upload
+          thread_ts: "1234567890.123456"
           retries: 0
       - name: Assert action failed due to auth error
         env:
@@ -27,4 +27,4 @@ jobs:
             echo "FAIL: expected action to fail with fake token but outcome was: $OUTCOME"
             exit 1
           fi
-          echo "PASS: action correctly failed when using an invalid Slack token with delete_file_ids_before_upload"
+          echo "PASS: action correctly failed when using an invalid Slack token with thread_ts"
