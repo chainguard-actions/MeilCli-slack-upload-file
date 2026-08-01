@@ -1,0 +1,76 @@
+name: Debug
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'post message as text file to slack'
+        required: true
+        default: 'Hello World!'
+      delete_file_ids_before_upload:
+        description: 'for post3 job argument'
+        required: false
+        default: ''
+
+jobs:
+  post1:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - env:
+          MESSAGE: ${{ github.event.inputs.message }}
+        run: echo "$MESSAGE" > test1.txt
+      - env:
+          MESSAGE: ${{ github.event.inputs.message }}
+        run: echo "$MESSAGE" > test2.txt
+      - uses: ./
+        id: upload_file
+        with:
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          file_path: 'test*.txt'
+          initial_comment: 'post by slack-upload-file'
+  # test for issue 529
+  post2:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: mkdir -p testsrc/main
+      - env:
+          MESSAGE: ${{ github.event.inputs.message }}
+        run: echo "$MESSAGE" > testsrc/main/test1.txt
+      - env:
+          MESSAGE: ${{ github.event.inputs.message }}
+        run: echo "$MESSAGE" > testsrc/main/test2.txt
+      - uses: ./
+        with:
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          file_path: 'testsrc/main/test*.txt'
+          file_type: 'text'
+          initial_comment: 'post by slack-upload-file for testing issue 529'
+  post3:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - env:
+          MESSAGE: ${{ github.event.inputs.message }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: echo "${MESSAGE}${RUN_NUMBER}" > replacement_test.txt
+      - uses: ./
+        id: slack_upload
+        with:
+          slack_token: ${{ secrets.SLACK_TOKEN }}
+          channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          file_path: 'replacement_test.txt'
+          file_type: 'text'
+          delete_file_ids_before_upload: ${{ github.event.inputs.delete_file_ids_before_upload }}
+      - env:
+          UPLOADED_FILE_ID: ${{ steps.slack_upload.outputs.uploaded_file_id }}
+        run: echo "$UPLOADED_FILE_ID"

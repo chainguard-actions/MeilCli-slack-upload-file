@@ -1,0 +1,17 @@
+name: Automerge
+
+on:
+  pull_request_review:
+    types:
+      - submitted
+
+jobs:
+  automerge:
+    if: github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    permissions: {}
+    env:
+      PR_URL: ${{ github.event.pull_request.html_url }}
+      GITHUB_TOKEN: ${{ secrets.MEILCLI_BOT }}
+    steps:
+      - run: gh pr merge --merge --auto "$PR_URL"
