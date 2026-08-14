@@ -1,0 +1,21 @@
+name: CI-PR
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions: {}
+
+jobs:
+  build:
+    uses: ./.github/workflows/ci-base-build.yml
+    secrets: inherit
+  approve:
+    uses: ./.github/workflows/ci-base-approve.yml
+    secrets: inherit
+    needs: build
+  merge:
+    uses: ./.github/workflows/ci-base-merge.yml
+    secrets: inherit
+    needs: build

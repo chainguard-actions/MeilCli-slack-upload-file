@@ -1,4 +1,4 @@
-name: Test content upload
+name: Test with retries parameter
 on:
   workflow_dispatch:
 jobs:
@@ -12,21 +12,19 @@ jobs:
         with:
           slack_token: xoxb-fake-token-for-testing
           channel_id: C0000000000
-          content: "Hello from test"
-          file_name: test.txt
-          title: "Test Upload"
-          initial_comment: "Test comment"
-      - name: Assert action ran and produced response output
+          content: "Test with retries"
+          file_name: test-retries.txt
+          retries: 1
+      - name: Assert action ran with retries parameter
         env:
           OUTCOME: ${{ steps.action.outcome }}
           RESPONSE: ${{ steps.action.outputs.response }}
         run: |
           echo "outcome: $OUTCOME"
           echo "response: $RESPONSE"
-          # With a fake token, the action should either fail or return an error response
-          # Either way, the action should have run (not skipped)
+          # With a fake token, the action should fail (not skip)
           if [ "$OUTCOME" = "skipped" ]; then
             echo "FAIL: action was skipped unexpectedly"
             exit 1
           fi
-          echo "PASS: action ran with outcome=$OUTCOME"
+          echo "PASS: action ran with retries=1, outcome=$OUTCOME"

@@ -1,0 +1,18 @@
+name: Test if_no_files_found warn
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          slack_token: 'xoxb-fake-token-for-testing'
+          file_path: 'nonexistent-file-that-does-not-exist.txt'
+          if_no_files_found: 'warn'
+      - name: Assert action completed without error
+        run: |
+          echo "Action completed successfully with if_no_files_found=warn"
+          echo "PASS"

@@ -1,4 +1,4 @@
-name: Test content upload
+name: Test no files found ignore
 on:
   workflow_dispatch:
 jobs:
@@ -12,19 +12,15 @@ jobs:
         with:
           slack_token: xoxb-fake-token-for-testing
           channel_id: C0000000000
-          content: "Hello from test"
-          file_name: test.txt
-          title: "Test Upload"
-          initial_comment: "Test comment"
-      - name: Assert action ran and produced response output
+          file_path: /tmp/nonexistent-file-that-does-not-exist.txt
+          if_no_files_found: ignore
+      - name: Assert action ran and handled missing file gracefully
         env:
           OUTCOME: ${{ steps.action.outcome }}
-          RESPONSE: ${{ steps.action.outputs.response }}
         run: |
           echo "outcome: $OUTCOME"
-          echo "response: $RESPONSE"
-          # With a fake token, the action should either fail or return an error response
-          # Either way, the action should have run (not skipped)
+          # With if_no_files_found=ignore, the action should succeed (ignore missing file)
+          # or at minimum not be skipped
           if [ "$OUTCOME" = "skipped" ]; then
             echo "FAIL: action was skipped unexpectedly"
             exit 1

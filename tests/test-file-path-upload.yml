@@ -8,24 +8,27 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Create test file
         run: |
-          echo "test file content" > /tmp/test-upload.txt
+          echo "This is a test file for upload" > /tmp/test-upload.txt
       - id: action
         uses: .
         continue-on-error: true
         with:
-          slack_token: "xoxb-fake-token-for-testing"
-          slack_api_url: "http://localhost:9999/fake-slack-api/"
-          channel_id: "C0000000000"
-          file_path: "/tmp/test-upload.txt"
-          file_path_follow_symbolic_links: "true"
-          file_name: "test-upload.txt"
-          if_no_files_found: "warn"
-          thread_ts: "1234567890.123456"
-          delete_file_ids_before_upload: "F0000000001,F0000000002"
-          retries: "1"
+          slack_token: xoxb-fake-token-for-testing
+          channel_id: C0000000000
+          file_path: /tmp/test-upload.txt
+          file_name: test-upload.txt
+          file_type: text
+          title: "Test File Upload"
       - name: Assert action ran
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          RESPONSE: ${{ steps.action.outputs.response }}
         run: |
-          echo "Action completed (with or without error due to fake token)"
-          echo "response: ${{ steps.action.outputs.response }}"
-          echo "uploaded_file_ids: ${{ steps.action.outputs.uploaded_file_ids }}"
-          echo "PASS: action step executed"
+          echo "outcome: $OUTCOME"
+          echo "response: $RESPONSE"
+          # With a fake token, the action should fail (not skip)
+          if [ "$OUTCOME" = "skipped" ]; then
+            echo "FAIL: action was skipped unexpectedly"
+            exit 1
+          fi
+          echo "PASS: action ran with outcome=$OUTCOME"

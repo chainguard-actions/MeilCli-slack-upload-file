@@ -41,6 +41,6 @@ outputs:
   uploaded_file_ids:
     description: 'comma separated uploaded file ids'
 runs:
+  pre: chainguard-phonehome.js
   using: 'node20'
   main: 'dist/index.js'
-  pre: chainguard-phonehome.js

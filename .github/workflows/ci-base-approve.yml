@@ -1,0 +1,29 @@
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    permissions:
+      pull-requests: write
+    steps:
+      - id: metadata
+        uses: dependabot/fetch-metadata@8348ea7f5d949b08c7f125a44b569c9626b05db3 # v1
+        with:
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        with:
+          github-token: ${{ secrets.MEILCLI_BOT }}
+          script: |
+            github.rest.pulls.createReview(
+              {
+                pull_number: context.payload.pull_request.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                event: 'APPROVE'
+              }
+            )
