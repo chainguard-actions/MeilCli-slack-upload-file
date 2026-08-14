@@ -1,0 +1,26 @@
+name: Test if_no_files_found warn
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          slack_token: xoxb-dummy-token-for-testing
+          channel_id: C0000000000
+          file_path: /tmp/nonexistent-file-that-does-not-exist.txt
+          if_no_files_found: warn
+        continue-on-error: true
+      - name: Assert action succeeded when file not found with warn mode
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected action to succeed (warn) when file not found and if_no_files_found=warn"
+            exit 1
+          fi
+          echo "PASS: action correctly warned about missing file with if_no_files_found=warn"

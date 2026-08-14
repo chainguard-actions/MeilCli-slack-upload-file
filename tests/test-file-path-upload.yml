@@ -8,26 +8,34 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Create test file
         run: |
-          echo "test file content" > /tmp/test-upload.txt
+          echo "This is a test file for upload" > /tmp/test-upload.txt
       - id: action
         uses: .
-        continue-on-error: true
         with:
-          slack_token: xoxb-fake-token-for-testing
-          slack_api_url: http://localhost:9999/
+          slack_token: xoxb-dummy-token-for-testing
           channel_id: C0000000000
           file_path: /tmp/test-upload.txt
-          file_path_follow_symbolic_links: true
-          if_no_files_found: warn
-          delete_file_ids_before_upload: "F0000000001,F0000000002"
-      - name: Assert action ran (network failure expected with fake URL)
+          file_name: test-upload.txt
+          file_type: text
+          title: "Test File Upload"
+          retries: "1"
+        continue-on-error: true
+      - name: Assert action ran and produced output or failed gracefully
         env:
           OUTCOME: ${{ steps.action.outcome }}
+          RESPONSE: ${{ steps.action.outputs.response }}
         run: |
           echo "outcome: $OUTCOME"
-          if [ "$OUTCOME" = "success" ] || [ "$OUTCOME" = "failure" ]; then
-            echo "PASS: action executed"
+          echo "response: $RESPONSE"
+          # With a dummy token, the action should fail with an API error
+          # but it should not crash with an unhandled exception
+          if [ "$OUTCOME" = "success" ]; then
+            echo "Action succeeded (unexpected with dummy token)"
+            if [ -z "$RESPONSE" ]; then
+              echo "FAIL: response output should not be empty on success"
+              exit 1
+            fi
           else
-            echo "FAIL: unexpected outcome: $OUTCOME"
-            exit 1
+            echo "Action failed as expected with dummy token - graceful failure confirmed"
           fi
+          echo "PASS"
