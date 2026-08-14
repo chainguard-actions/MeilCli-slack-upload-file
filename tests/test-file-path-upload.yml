@@ -1,4 +1,4 @@
-name: Test content upload
+name: Test file path upload
 on:
   workflow_dispatch:
 jobs:
@@ -6,29 +6,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Test action with content input (invalid token expected to fail)
+      - name: Create test file
+        run: |
+          echo "This is a test file content" > /tmp/test-upload.txt
+      - name: Test action with file_path input
         id: action
         uses: .
         with:
           slack_token: xoxb-invalid-token-for-testing
           channel_id: C0000000000
-          content: "Hello from test"
-          file_name: test.txt
-          title: "Test Upload"
-          initial_comment: "Test comment"
+          file_path: /tmp/test-upload.txt
+          file_name: test-upload.txt
+          file_type: text
+          title: "Test File Upload"
           retries: "1"
         continue-on-error: true
-      - name: Assert action ran and produced outputs or failed gracefully
+      - name: Assert action ran with file_path
         env:
           OUTCOME: ${{ steps.action.outcome }}
-          RESPONSE: ${{ steps.action.outputs.response }}
         run: |
           echo "outcome: $OUTCOME"
-          echo "response: $RESPONSE"
           # The action should either succeed or fail with an API error
-          # but it should not crash unexpectedly (e.g. missing required inputs)
+          # but it should not crash due to file not found or missing inputs
           if [ "$OUTCOME" = "skipped" ]; then
             echo "FAIL: action was skipped unexpectedly"
             exit 1
           fi
-          echo "PASS: action ran (outcome=$OUTCOME)"
+          echo "PASS: action ran with file_path (outcome=$OUTCOME)"

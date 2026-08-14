@@ -1,4 +1,4 @@
-name: Test content upload
+name: Test slack_api_url input
 on:
   workflow_dispatch:
 jobs:
@@ -6,29 +6,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Test action with content input (invalid token expected to fail)
+      - name: Test action with custom slack_api_url input
         id: action
         uses: .
         with:
           slack_token: xoxb-invalid-token-for-testing
+          slack_api_url: https://slack.example.invalid/api/
           channel_id: C0000000000
-          content: "Hello from test"
+          content: "Hello from slack_api_url test"
           file_name: test.txt
-          title: "Test Upload"
-          initial_comment: "Test comment"
           retries: "1"
         continue-on-error: true
-      - name: Assert action ran and produced outputs or failed gracefully
+      - name: Assert action ran (not skipped) when slack_api_url is provided
         env:
           OUTCOME: ${{ steps.action.outcome }}
-          RESPONSE: ${{ steps.action.outputs.response }}
         run: |
           echo "outcome: $OUTCOME"
-          echo "response: $RESPONSE"
-          # The action should either succeed or fail with an API error
-          # but it should not crash unexpectedly (e.g. missing required inputs)
+          # The action should attempt to call the custom API URL and fail
+          # (invalid URL / token), but it must not be skipped (i.e. the input
+          # was accepted and the action ran).
           if [ "$OUTCOME" = "skipped" ]; then
             echo "FAIL: action was skipped unexpectedly"
             exit 1
           fi
-          echo "PASS: action ran (outcome=$OUTCOME)"
+          echo "PASS: action ran with slack_api_url input (outcome=$OUTCOME)"

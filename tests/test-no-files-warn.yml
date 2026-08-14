@@ -1,0 +1,32 @@
+name: Test if_no_files_found warn
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          slack_token: "xoxb-fake-token-for-no-files-test"
+          file_path: "/nonexistent/path/that/does/not/exist/*.log"
+          if_no_files_found: warn
+      - name: Assert action succeeded with warning (files not found, warned)
+        env:
+          RESPONSE: ${{ steps.action.outputs.response }}
+          FILE_IDS: ${{ steps.action.outputs.uploaded_file_ids }}
+        run: |
+          echo "response: '$RESPONSE'"
+          echo "uploaded_file_ids: '$FILE_IDS'"
+          # When if_no_files_found=warn, the action exits early without uploading
+          # so outputs should be empty
+          if [ -n "$RESPONSE" ]; then
+            echo "FAIL: expected empty response but got: $RESPONSE"
+            exit 1
+          fi
+          if [ -n "$FILE_IDS" ]; then
+            echo "FAIL: expected empty uploaded_file_ids but got: $FILE_IDS"
+            exit 1
+          fi
+          echo "PASS: action warned about missing files and continued as expected"

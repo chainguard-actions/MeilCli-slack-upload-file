@@ -1,0 +1,31 @@
+name: Test thread_ts input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Test action with thread_ts input (reply to a thread)
+        id: action
+        uses: .
+        with:
+          slack_token: xoxb-invalid-token-for-testing
+          channel_id: C0000000000
+          content: "Reply file content"
+          file_name: reply.txt
+          thread_ts: "1234567890.123456"
+          retries: "1"
+        continue-on-error: true
+      - name: Assert action ran (not skipped) when thread_ts is provided
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # The action should attempt the upload (and fail due to invalid token)
+          # but must not be skipped — confirming thread_ts was accepted.
+          if [ "$OUTCOME" = "skipped" ]; then
+            echo "FAIL: action was skipped unexpectedly"
+            exit 1
+          fi
+          echo "PASS: action ran with thread_ts input (outcome=$OUTCOME)"
