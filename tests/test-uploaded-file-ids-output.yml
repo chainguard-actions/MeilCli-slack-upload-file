@@ -1,4 +1,4 @@
-name: Test file path upload
+name: Test uploaded_file_ids output
 on:
   workflow_dispatch:
 jobs:
@@ -6,34 +6,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Create test file
-        run: |
-          echo "This is a test file for slack upload" > /tmp/test-upload.txt
       - id: action
         uses: .
         continue-on-error: true
         with:
           slack_token: ${{ secrets.SLACK_TOKEN || 'xoxb-test-invalid-token' }}
           channel_id: 'C0000000000'
-          file_path: '/tmp/test-upload.txt'
-          file_name: 'test-upload.txt'
-          file_type: 'text'
-          title: 'Test File Upload'
-          initial_comment: 'Automated file path test'
-      - name: Assert action ran
+          content: 'Test content for file ids output verification'
+          file_name: 'test-ids.txt'
+          title: 'Test File IDs Output'
+      - name: Assert outputs are defined
         env:
           OUTCOME: ${{ steps.action.outcome }}
           RESPONSE: ${{ steps.action.outputs.response }}
+          FILE_IDS: ${{ steps.action.outputs.uploaded_file_ids }}
         run: |
           echo "outcome: $OUTCOME"
           echo "response: $RESPONSE"
+          echo "uploaded_file_ids: $FILE_IDS"
           if [ "$OUTCOME" = "success" ]; then
-            echo "Action succeeded"
+            # On success, both outputs should be populated
             if [ -z "$RESPONSE" ]; then
               echo "FAIL: expected response output to be non-empty on success"
               exit 1
             fi
-            echo "PASS: action succeeded with response"
+            if [ -z "$FILE_IDS" ]; then
+              echo "FAIL: expected uploaded_file_ids output to be non-empty on success"
+              exit 1
+            fi
+            echo "PASS: both response and uploaded_file_ids outputs are populated"
           elif [ "$OUTCOME" = "failure" ]; then
             echo "Action failed (expected with invalid/missing token)"
             echo "PASS: action ran and failed as expected with invalid credentials"
