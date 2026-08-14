@@ -1,0 +1,27 @@
+name: Test file not found with ignore option
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          slack_token: xoxb-invalid-token-for-testing
+          channel_id: C0000000000
+          file_path: /tmp/nonexistent-file-that-does-not-exist-xyz.txt
+          if_no_files_found: ignore
+          retries: "1"
+        continue-on-error: true
+      - name: Assert action succeeded when file not found with ignore option
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "FAIL: action should not fail when if_no_files_found=ignore (got $OUTCOME)"
+            exit 1
+          fi
+          echo "PASS: action handled missing file with ignore option (outcome=$OUTCOME)"
