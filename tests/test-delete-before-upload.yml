@@ -1,0 +1,67 @@
+name: Test delete file ids before upload
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Start mock Slack API server
+        run: |
+          python3 "$GITHUB_WORKSPACE/tests/fixtures/mock-slack-server.py" 3004 &
+          echo "MOCK_PID=$!" >> "$GITHUB_ENV"
+          # Wait for server to be ready
+          for i in $(seq 1 10); do
+            if curl -sf http://localhost:3004/ > /dev/null 2>&1; then
+              echo "Mock server is ready"
+              break
+            fi
+            sleep 1
+          done
+      - name: Upload initial file
+        id: initial_upload
+        uses: .
+        with:
+          slack_token: "xoxb-dummy-token-for-testing"
+          slack_api_url: "http://localhost:3004/api/"
+          channel_id: "C12345"
+          content: "Initial file content - will be replaced"
+          file_name: "initial.txt"
+          title: "Act Test - Initial Upload (to be replaced)"
+      - name: Assert initial upload succeeded
+        env:
+          ACTUAL: ${{ steps.initial_upload.outputs.uploaded_file_ids }}
+        run: |
+          echo "initial uploaded_file_ids: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected initial upload to produce file ids"
+            exit 1
+          fi
+          echo "PASS: initial upload succeeded with ids: $ACTUAL"
+      - name: Upload replacement file (deleting previous)
+        id: replacement_upload
+        uses: .
+        with:
+          slack_token: "xoxb-dummy-token-for-testing"
+          slack_api_url: "http://localhost:3004/api/"
+          channel_id: "C12345"
+          content: "Replacement file content"
+          file_name: "replacement.txt"
+          title: "Act Test - Replacement Upload"
+          delete_file_ids_before_upload: ${{ steps.initial_upload.outputs.uploaded_file_ids }}
+      - name: Assert replacement upload succeeded
+        env:
+          ACTUAL: ${{ steps.replacement_upload.outputs.uploaded_file_ids }}
+        run: |
+          echo "replacement uploaded_file_ids: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected replacement upload to produce file ids"
+            exit 1
+          fi
+          echo "PASS: replacement upload succeeded with ids: $ACTUAL"
+      - name: Stop mock server
+        if: always()
+        run: |
+          if [ -n "$MOCK_PID" ]; then
+            kill "$MOCK_PID" 2>/dev/null || true
+          fi

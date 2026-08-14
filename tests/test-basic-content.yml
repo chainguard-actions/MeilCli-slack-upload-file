@@ -1,4 +1,4 @@
-name: Test file path upload
+name: Test basic content upload
 on:
   workflow_dispatch:
 jobs:
@@ -8,30 +8,26 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Start mock Slack API server
         run: |
-          python3 "$GITHUB_WORKSPACE/tests/fixtures/mock-slack-server.py" 3002 &
+          python3 "$GITHUB_WORKSPACE/tests/fixtures/mock-slack-server.py" 3001 &
           echo "MOCK_PID=$!" >> "$GITHUB_ENV"
           # Wait for server to be ready
           for i in $(seq 1 10); do
-            if curl -sf http://localhost:3002/ > /dev/null 2>&1; then
+            if curl -sf http://localhost:3001/ > /dev/null 2>&1; then
               echo "Mock server is ready"
               break
             fi
             sleep 1
           done
-      - name: Create test file
-        run: |
-          echo "This is a test file for act workflow testing." > /tmp/test-upload.txt
       - id: action
         uses: .
         with:
           slack_token: "xoxb-dummy-token-for-testing"
-          slack_api_url: "http://localhost:3002/api/"
+          slack_api_url: "http://localhost:3001/api/"
           channel_id: "C12345"
-          file_path: "/tmp/test-upload.txt"
-          file_name: "test-upload.txt"
-          file_type: "text"
-          title: "Act Test - File Path Upload"
-          initial_comment: "Test file uploaded via file_path"
+          content: "Hello from act test!"
+          file_name: "test-content.txt"
+          title: "Act Test - Basic Content Upload"
+          initial_comment: "This is a test upload from act"
       - name: Assert response is non-empty
         env:
           ACTUAL: ${{ steps.action.outputs.response }}
