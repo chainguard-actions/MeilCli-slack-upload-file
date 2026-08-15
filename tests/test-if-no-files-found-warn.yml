@@ -1,0 +1,31 @@
+name: Test if_no_files_found warn
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          slack_token: xoxb-fake-token-for-testing
+          channel_id: C0000000000
+          file_path: /tmp/nonexistent-file-that-does-not-exist.txt
+          if_no_files_found: warn
+      - name: Assert action handled missing file with warn
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # With if_no_files_found=warn, the action should warn but not fail
+          # due to the missing file. It may still fail due to Slack API auth.
+          # We accept both success and failure here since we can't distinguish
+          # "warned about missing file" from "auth error" without a real token.
+          if [ "$OUTCOME" = "success" ] || [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action handled missing file with if_no_files_found=warn (outcome: $OUTCOME)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

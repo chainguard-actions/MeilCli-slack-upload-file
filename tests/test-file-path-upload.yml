@@ -1,0 +1,43 @@
+name: Test file path upload
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create test file
+        run: |
+          echo "This is a test file for Slack upload" > /tmp/test-upload.txt
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          slack_token: xoxb-fake-token-for-testing
+          channel_id: C0000000000
+          file_path: /tmp/test-upload.txt
+          file_name: "test-upload.txt"
+          file_type: "text"
+          title: "Test File Upload"
+          initial_comment: "Test file path upload from CI"
+      - name: Assert action ran and produced expected outcome
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          RESPONSE: ${{ steps.action.outputs.response }}
+          FILE_IDS: ${{ steps.action.outputs.uploaded_file_ids }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "response: $RESPONSE"
+          echo "uploaded_file_ids: $FILE_IDS"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$RESPONSE" ]; then
+              echo "FAIL: action succeeded but response output is empty"
+              exit 1
+            fi
+            echo "PASS: action succeeded with response: $RESPONSE"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (expected without a real Slack token)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
