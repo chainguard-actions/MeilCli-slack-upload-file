@@ -17,6 +17,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v5.0.5 | [`v5.0.5`](https://github.com/chainguard-actions/MeilCli-slack-upload-file/tree/v5.0.5) | [`9e82035`](https://github.com/MeilCli/slack-upload-file/commit/9e82035321294462b5c46319be2abe7a030af067) |
 | v5.0.7 | [`v5.0.7`](https://github.com/chainguard-actions/MeilCli-slack-upload-file/tree/v5.0.7) | [`2ce30d3`](https://github.com/MeilCli/slack-upload-file/commit/2ce30d39d4c33dccbdbc747c5acf0c9d7fa513fa) |
 | v5.0.8 | [`v5.0.8`](https://github.com/chainguard-actions/MeilCli-slack-upload-file/tree/v5.0.8) | [`d0b2d26`](https://github.com/MeilCli/slack-upload-file/commit/d0b2d267d0e834168f89e90ba2e1d3a506854480) |
+| v5.0.9 | [`v5.0.9`](https://github.com/chainguard-actions/MeilCli-slack-upload-file/tree/v5.0.9) | [`fff3b79`](https://github.com/MeilCli/slack-upload-file/commit/fff3b79a9b5f4360106860747a8de2d819d0a8bd) |
 
 ## Privacy
 
