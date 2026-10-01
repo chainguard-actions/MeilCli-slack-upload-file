@@ -1,0 +1,28 @@
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'daily'
+    cooldown:
+      default-days: 7
+    reviewers:
+      - 'MeilCli'
+    assignees:
+      - 'MeilCli'
+    labels:
+      - 'Dependencies'
+    open-pull-requests-limit: 20
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'daily'
+    cooldown:
+      default-days: 7
+    reviewers:
+      - 'MeilCli'
+    assignees:
+      - 'MeilCli'
+    labels:
+      - 'GitHubAction'
+    open-pull-requests-limit: 20
