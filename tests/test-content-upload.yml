@@ -1,0 +1,52 @@
+name: Test content upload
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Start mock Slack API
+        run: |
+          rm -f /tmp/slack-content.log
+          nohup python3 "$GITHUB_WORKSPACE/tests/fixtures/mock_slack.py" 18731 /tmp/slack-content.log ok > /tmp/mock.out 2>&1 &
+          for i in $(seq 1 30); do
+            curl -s http://127.0.0.1:18731/ >/dev/null && break
+            sleep 0.5
+          done
+          curl -s http://127.0.0.1:18731/ || { cat /tmp/mock.out; exit 1; }
+      - id: action
+        uses: .
+        with:
+          slack_token: xoxb-test-token
+          slack_api_url: http://127.0.0.1:18731/api/
+          channel_id: C0123456789
+          content: hello-from-act-test
+          file_name: hello.txt
+          title: Hello
+          retries: '0'
+      - name: Assert outputs
+        env:
+          IDS: ${{ steps.action.outputs.uploaded_file_ids }}
+          RESPONSE: ${{ steps.action.outputs.response }}
+        run: |
+          echo "ids: $IDS"
+          echo "response: $RESPONSE"
+          cat /tmp/slack-content.log || true
+          if [ "$IDS" != "FMOCK1" ]; then
+            echo "FAIL: expected uploaded_file_ids 'FMOCK1'"
+            exit 1
+          fi
+          if ! echo "$RESPONSE" | grep -q '"ok":true'; then
+            echo "FAIL: response missing ok:true"
+            exit 1
+          fi
+          if ! grep -q 'hello-from-act-test' /tmp/slack-content.log; then
+            echo "FAIL: content not uploaded to mock"
+            exit 1
+          fi
+          if ! grep -q 'files.getUploadURLExternal' /tmp/slack-content.log; then
+            echo "FAIL: getUploadURLExternal not called"
+            exit 1
+          fi
+          echo "PASS"

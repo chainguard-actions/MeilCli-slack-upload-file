@@ -1,0 +1,50 @@
+name: Test file path upload
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Prepare files and mock Slack API
+        run: |
+          mkdir -p /tmp/upload-src
+          echo "file-one-body" > /tmp/upload-src/one.txt
+          echo "file-two-body" > /tmp/upload-src/two.txt
+          rm -f /tmp/slack-file.log
+          nohup python3 "$GITHUB_WORKSPACE/tests/fixtures/mock_slack.py" 18732 /tmp/slack-file.log ok > /tmp/mock.out 2>&1 &
+          for i in $(seq 1 30); do
+            curl -s http://127.0.0.1:18732/ >/dev/null && break
+            sleep 0.5
+          done
+          curl -s http://127.0.0.1:18732/ || { cat /tmp/mock.out; exit 1; }
+      - id: action
+        uses: .
+        with:
+          slack_token: xoxb-test-token
+          slack_api_url: http://127.0.0.1:18732/api/
+          channel_id: C0123456789
+          file_path: /tmp/upload-src/*.txt
+          initial_comment: two files
+          retries: '0'
+      - name: Assert outputs
+        env:
+          IDS: ${{ steps.action.outputs.uploaded_file_ids }}
+        run: |
+          echo "ids: $IDS"
+          cat /tmp/slack-file.log || true
+          if [ -z "$IDS" ]; then
+            echo "FAIL: uploaded_file_ids empty"
+            exit 1
+          fi
+          if ! echo "$IDS" | grep -q 'FMOCK1' || ! echo "$IDS" | grep -q 'FMOCK2'; then
+            echo "FAIL: expected both FMOCK1 and FMOCK2 in ids"
+            exit 1
+          fi
+          for b in file-one-body file-two-body; do
+            if ! grep -q "$b" /tmp/slack-file.log; then
+              echo "FAIL: $b not uploaded"
+              exit 1
+            fi
+          done
+          echo "PASS"

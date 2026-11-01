@@ -1,0 +1,54 @@
+name: Test thread reply with file_type
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Start mock Slack API
+        run: |
+          rm -f /tmp/slack-thread.log
+          nohup python3 "$GITHUB_WORKSPACE/tests/fixtures/mock_slack.py" 18742 /tmp/slack-thread.log ok > /tmp/mock.out 2>&1 &
+          for i in $(seq 1 30); do
+            curl -s http://127.0.0.1:18742/ >/dev/null && break
+            sleep 0.5
+          done
+          curl -s http://127.0.0.1:18742/ || { cat /tmp/mock.out; exit 1; }
+      - id: action
+        uses: .
+        with:
+          slack_token: xoxb-test-token
+          slack_api_url: http://127.0.0.1:18742/api/
+          channel_id: C0123456789
+          content: thread-reply-content
+          file_name: reply.txt
+          file_type: text
+          thread_ts: '1700000000.123456'
+          initial_comment: reply in thread
+          retries: '0'
+      - name: Assert upload was a thread reply
+        env:
+          IDS: ${{ steps.action.outputs.uploaded_file_ids }}
+          RESPONSE: ${{ steps.action.outputs.response }}
+        run: |
+          echo "ids: $IDS"
+          echo "response: $RESPONSE"
+          cat /tmp/slack-thread.log || true
+          if [ "$IDS" != "FMOCK1" ]; then
+            echo "FAIL: expected uploaded_file_ids 'FMOCK1'"
+            exit 1
+          fi
+          if ! grep -q 'files.completeUploadExternal' /tmp/slack-thread.log; then
+            echo "FAIL: completeUploadExternal not called"
+            exit 1
+          fi
+          if ! grep -q '1700000000.123456' /tmp/slack-thread.log; then
+            echo "FAIL: thread_ts not sent to Slack"
+            exit 1
+          fi
+          if ! grep -q 'thread-reply-content' /tmp/slack-thread.log; then
+            echo "FAIL: content not uploaded"
+            exit 1
+          fi
+          echo "PASS"
